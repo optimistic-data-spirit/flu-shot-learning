@@ -1,7 +1,5 @@
 ---
 title: "Flu Shot Learning"
-author: "C. Mimeault"
-date: "14/04/2020"
 output: html_document
 ---
 
@@ -10,14 +8,13 @@ output: html_document
 The DrivenData website launched a data competition on [H1N1 and seasonal flu vaccination](https://www.drivendata.org/competitions/66/flu-shot-learning/page/210/). The objective is to predict how likely individuals are to receive their flu vaccines based on data and information collected in a phone survey. 
 
 ## Setup
-```{r setup, include=FALSE}
+```{r setup, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 rm(list = ls())
 ```
 
-```{r packages, include=FALSE}
+```{r packages, message=FALSE}
 library(tidyverse)
-library(lubridate)
 library(janitor)
 theme_set(theme_minimal())
 ```
@@ -26,18 +23,135 @@ theme_set(theme_minimal())
 
 Data were downloaded from the [website](https://www.drivendata.org/competitions/66/flu-shot-learning/data/) on April 14th, 2020.
 
-```{r data, include=FALSE}
+```{r data, message=FALSE}
 train_features <- read_csv("~/projects/driven_data/flu_shot/data/raw/training_set_features.csv")
 train_labels <- read_csv("~/projects/driven_data/flu_shot/data/raw/training_set_labels.csv")
-train_joined <- train_labels %>% left_join(train_features) # merged the labels and features of the training data
-
 test_features <- read_csv("~/projects/driven_data/flu_shot/data/raw/test_set_features.csv")
+submission_format <- read_csv("~/projects/driven_data/flu_shot/data/raw/submission_format.csv")
 ```
 
-## Cleaning
+## Initial exploration
 
+```{r}
+dim(train_features)
+dim(train_labels)
+dim(test_features)
+dim(submission_format)
+```
 
+From the above we can see that the training datasets have 26707 rows (using the head and tail functions we can see that those rows correspond to respondant_id 0 to 26706) and the test datasets has 26708 rows (respondant_id 26707 to 53414). We can also see that features for both the training and testing datasets include 36 variables and a quick verification with the intersect function confirmed that the variables are the same for the training and testing datasets.
+```{r}
+intersect(names(train_features), names(test_features))
+```
+
+Using the same function we can confirm that the only common variable to the features and labels datasets are the respondant_id: 
+```{r}
+intersect(names(train_features), names(train_labels))
+intersect(names(test_features), names(submission_format))
+```
+
+We can therefore join the features and labels of the training datasets resulting in the same number of rows with two additional variables being h1n1_vaccine and seasonal_vaccine (the ones to prdict in the test dataset):
+```{r}
+joined <- train_labels %>% left_join(train_features)
+dim(joined)
+head(joined)
+```
+
+The [data for this competition comes from the National 2009 H1N1 Flu Survey (NHFS)](https://www.drivendata.org/competitions/66/flu-shot-learning/page/213/). In their own words: 
+
+> The National 2009 H1N1 Flu Survey (NHFS) was sponsored by the National Center for Immunization and Respiratory Diseases (NCIRD) and conducted jointly by NCIRD and the National Center for Health Statistics (NCHS), Centers for Disease Control and Prevention (CDC). The NHFS was a list-assisted random-digit-dialing telephone survey of households, designed to monitor influenza immunization coverage in the 2009-10 season.
+> The target population for the NHFS was all persons 6 months or older living in the United States at the time of the interview. Data from the NHFS were used to produce timely estimates of vaccination coverage rates for both the monovalent pH1N1 and trivalent seasonal influenza vaccines.
+
+According to [Google](https://www.google.com/publicdata/explore?ds=kf7tgg1uo9ude_&met_y=population&idim=country:US&hl=en&dl=en) based on U.S. Census Bureau data, the total population in the USA in 209 was approximately 306.8 million. With a training dataset including 26708 respondants (with respondant 0) it therefore represents approximately 0.0087% of the population. Given that the survey was as "list-assisted random-digit-dialing telephone survey of households" in the USA, it is reasonable to consider the sample representative of the whole population.
+
+### Data description
+
+The description for the variables below are from the [DrivenData](https://www.drivendata.org/competitions/66/flu-shot-learning/page/211/) website:
+
+There are two target variables (multilabel problem) and both are binary variables(0 = No; 1 = Yes):
+
+* h1n1_vaccine - Whether respondent received H1N1 flu vaccine.
+* seasonal_vaccine - Whether respondent received seasonal flu vaccine.
+
+There are 36 features in this dataset, hence a dataset with 36 columns. The first column respondent_id is a unique and random identifier. The remaining 35 features are described below. For all binary variables: 0 = No; 1 = Yes.
+
+* h1n1_concern - Level of concern about the H1N1 flu.
+    - 0 = Not at all concerned; 1 = Not very concerned; 2 = Somewhat concerned; 3 = Very concerned.
+* h1n1_knowledge - Level of knowledge about H1N1 flu.
+    - 0 = No knowledge; 1 = A little knowledge; 2 = A lot of knowledge.
+* behavioral_antiviral_meds - Has taken antiviral medications. (binary)
+* behavioral_avoidance - Has avoided close contact with others with flu-like symptoms. (binary)
+* behavioral_face_mask - Has bought a face mask. (binary)
+* behavioral_wash_hands - Has frequently washed hands or used hand sanitizer. (binary)
+* behavioral_large_gatherings - Has reduced time at large gatherings. (binary)
+* behavioral_outside_home - Has reduced contact with people outside of own household. (binary)
+* behavioral_touch_face - Has avoided touching eyes, nose, or mouth. (binary)
+* doctor_recc_h1n1 - H1N1 flu vaccine was recommended by doctor. (binary)
+* doctor_recc_seasonal - Seasonal flu vaccine was recommended by doctor. (binary)
+* chronic_med_condition - Has any of the following chronic medical conditions: asthma or an other lung condition, diabetes, a heart condition, a kidney condition, sickle cell anemia or other anemia, a neurological or neuromuscular condition, a liver condition, or a weakened immune system caused by a chronic illness or by medicines taken for a chronic illness. (binary)
+* child_under_6_months - Has regular close contact with a child under the age of six months. (binary)
+* health_worker - Is a healthcare worker. (binary)
+* health_insurance - Has health insurance. (binary)
+* opinion_h1n1_vacc_effective - Respondent's opinion about H1N1 vaccine effectiveness.
+    - 1 = Not at all effective; 2 = Not very effective; 3 = Don't know; 4 = Somewhat effective; 5 = Very effective.
+* opinion_h1n1_risk - Respondent's opinion about risk of getting sick with H1N1 flu without vaccine.
+    - 1 = Very Low; 2 = Somewhat low; 3 = Don't know; 4 = Somewhat high; 5 = Very high.
+* opinion_h1n1_sick_from_vacc - Respondent's worry of getting sick from taking H1N1 vaccine.
+    - 1 = Not at all worried; 2 = Not very worried; 3 = Don't know; 4 = Somewhat worried; 5 = Very worried.
+* opinion_seas_vacc_effective - Respondent's opinion about seasonal flu vaccine effectiveness.
+    - 1 = Not at all effective; 2 = Not very effective; 3 = Don't know; 4 = Somewhat effective; 5 = Very effective.
+* opinion_seas_risk - Respondent's opinion about risk of getting sick with seasonal flu without vaccine.
+    - 1 = Very Low; 2 = Somewhat low; 3 = Don't know; 4 = Somewhat high; 5 = Very high.
+* opinion_seas_sick_from_vacc - Respondent's worry of getting sick from taking seasonal flu vaccine.
+    - 1 = Not at all worried; 2 = Not very worried; 3 = Don't know; 4 = Somewhat worried; 5 = Very worried.
+* age_group - Age group of respondent.
+* education - Self-reported education level.
+* race - Race of respondent.
+* sex - Sex of respondent.
+* income_poverty - Household annual income of respondent with respect to 2008 Census poverty thresholds.
+* marital_status - Marital status of respondent.
+* rent_or_own - Housing situation of respondent.
+* employment_status - Employment status of respondent.
+* hhs_geo_region - Respondent's residence using a 10-region geographic classification defined by the U.S. Dept. of Health and Human Services. Values are represented as short random character strings.
+* census_msa - Respondent's residence within metropolitan statistical areas (MSA) as defined by the U.S. Census.
+* household_adults - Number of other adults in household, top-coded to 3.
+* household_children - Number of children in household, top-coded to 3.
+* employment_industry - Type of industry respondent is employed in. Values are represented as short random character strings.
+* employment_occupation - Type of occupation of respondent. Values are represented as short random character strings.
 
 ```{r cleaning, include=FALSE}
+# key <- c(`0` = "No", `1` = "Yes")
 
+joined$h1n1_vaccine <- as.factor(joined$h1n1_vaccine)
+joined$seasonal_vaccine <- as.factor(joined$seasonal_vaccine)
 ```
+
+```{r}
+str(joined$seasonal_vaccine)
+
+percent_seasonal <- joined %>% 
+  tabyl(seasonal_vaccine)
+percent_seasonal
+
+percent_seasonal%>%
+  ggplot() +
+  geom_col(aes(y = n, x = seasonal_vaccine)) +
+  labs(x = "Received vaccine? (0 = no, 1 = yes)", 
+       y = "Number of survey participants", 
+       title = "Did survey participants get their seasonal vaccine in 2009?")
+  
+str(joined$h1n1_vaccine)
+
+percent_h1n1 <- joined %>% 
+  tabyl(h1n1_vaccine)
+percent_h1n1
+
+percent_h1n1 %>%
+  ggplot() +
+  geom_col(aes(y = n, x = h1n1_vaccine)) +
+  labs(x = "Received vaccine? (0 = no, 1 = yes)", 
+       y = "Number of survey participants", 
+       title = "Did survey participants get their H1N1 vaccine in 2009?")
+```
+
+There are no missing values for the variables indicating whether the survey participants received their seasonal and/or H1N1 vaccination. Overall, 46.6% of survey participants got their seasonal vaccination while 21.2% got their H1N1 vaccination in 2009.
