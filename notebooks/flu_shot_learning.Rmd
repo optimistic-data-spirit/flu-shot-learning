@@ -1,0 +1,43 @@
+---
+title: "Flu Shot Learning"
+author: "C. Mimeault"
+date: "14/04/2020"
+output: html_document
+---
+
+## Context
+
+The DrivenData website launched a data competition on [H1N1 and seasonal flu vaccination](https://www.drivendata.org/competitions/66/flu-shot-learning/page/210/). The objective is to predict how likely individuals are to receive their flu vaccines based on data and information collected in a phone survey. 
+
+## Setup
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list = ls())
+```
+
+```{r packages, include=FALSE}
+library(tidyverse)
+library(lubridate)
+library(janitor)
+theme_set(theme_minimal())
+```
+
+## Data
+
+Data were downloaded from the [website](https://www.drivendata.org/competitions/66/flu-shot-learning/data/) on April 14th, 2020.
+
+```{r data, include=FALSE}
+train_features <- read_csv("~/projects/driven_data/flu_shot/data/raw/training_set_features.csv")
+train_labels <- read_csv("~/projects/driven_data/flu_shot/data/raw/training_set_labels.csv")
+train_joined <- train_labels %>% left_join(train_features)
+
+test_features <- read_csv("~/projects/driven_data/flu_shot/data/raw/test_set_features.csv")
+```
+
+## Cleaning
+
+
+
+```{r cleaning, include=FALSE}
+
+```
