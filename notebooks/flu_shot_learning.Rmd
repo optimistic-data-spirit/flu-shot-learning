@@ -29,7 +29,7 @@ Data were downloaded from the [website](https://www.drivendata.org/competitions/
 ```{r data, include=FALSE}
 train_features <- read_csv("~/projects/driven_data/flu_shot/data/raw/training_set_features.csv")
 train_labels <- read_csv("~/projects/driven_data/flu_shot/data/raw/training_set_labels.csv")
-train_joined <- train_labels %>% left_join(train_features)
+train_joined <- train_labels %>% left_join(train_features) # merged the labels and features of the training data
 
 test_features <- read_csv("~/projects/driven_data/flu_shot/data/raw/test_set_features.csv")
 ```
