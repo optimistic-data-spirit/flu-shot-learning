@@ -1,5 +1,5 @@
 # exclude data provided by DrivenData
-data/**/*.csv
+data/
 
 # exclude R Markdown outputs
 notebooks/*.html
