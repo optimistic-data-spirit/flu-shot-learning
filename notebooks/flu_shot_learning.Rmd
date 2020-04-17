@@ -15,6 +15,7 @@ rm(list = ls())
 
 ```{r packages, message=FALSE}
 library(tidyverse)
+library(magrittr)
 library(janitor)
 theme_set(theme_minimal())
 ```
@@ -124,22 +125,10 @@ There are 36 features in this dataset, hence a dataset with 36 columns. The firs
 
 joined$h1n1_vaccine <- as.factor(joined$h1n1_vaccine)
 joined$seasonal_vaccine <- as.factor(joined$seasonal_vaccine)
+joined$health_worker <- as.factor(joined$health_worker)
 ```
 
 ```{r}
-str(joined$seasonal_vaccine)
-
-percent_seasonal <- joined %>% 
-  tabyl(seasonal_vaccine)
-percent_seasonal
-
-percent_seasonal%>%
-  ggplot() +
-  geom_col(aes(y = n, x = seasonal_vaccine)) +
-  labs(x = "Received vaccine? (0 = no, 1 = yes)", 
-       y = "Number of survey participants", 
-       title = "Did survey participants get their seasonal vaccine in 2009?")
-  
 str(joined$h1n1_vaccine)
 
 percent_h1n1 <- joined %>% 
@@ -152,6 +141,274 @@ percent_h1n1 %>%
   labs(x = "Received vaccine? (0 = no, 1 = yes)", 
        y = "Number of survey participants", 
        title = "Did survey participants get their H1N1 vaccine in 2009?")
+
+str(joined$seasonal_vaccine)
+
+percent_seasonal <- joined %>% 
+  tabyl(seasonal_vaccine)
+percent_seasonal
+
+percent_seasonal%>%
+  ggplot() +
+  geom_col(aes(y = n, x = seasonal_vaccine)) +
+  labs(x = "Received vaccine? (0 = no, 1 = yes)", 
+       y = "Number of survey participants", 
+       title = "Did survey participants get their seasonal vaccine in 2009?")
 ```
 
 There are no missing values for the variables indicating whether the survey participants received their seasonal and/or H1N1 vaccination. Overall, 46.6% of survey participants got their seasonal vaccination while 21.2% got their H1N1 vaccination in 2009.
+
+```{r}
+joined %>%
+  ggplot(mapping = aes(y = age_group, fill = h1n1_vaccine)) +
+  geom_bar(position = "fill") +
+  labs(x = "Percentage of survey participants", 
+       y = "Age group", 
+       title = "Survey participants that got their H1N1 vaccine in 2009 by age group")
+
+joined %>%
+  ggplot(mapping = aes(y = age_group, fill = seasonal_vaccine)) +
+  geom_bar(position = "fill") +
+  labs(x = "Percentage of survey participants", 
+       y = "Age group", 
+       title = "Survey participants that got their seasonal vaccine in 2009 by age group")
+```
+
+```{r}
+joined %>%
+  ggplot(mapping = aes(y = h1n1_concern, fill = h1n1_vaccine)) +
+  geom_bar(position = "fill") +
+  labs(x = "Percentage of survey participants", 
+       y = "Concern level", 
+       title = "Survey participants that got their H1N1 vaccine in 2009 by concern level")
+
+joined %>%
+  ggplot(mapping = aes(y = h1n1_knowledge, fill = h1n1_vaccine)) +
+  geom_bar(position = "fill") +
+  labs(x = "Percentage of survey participants", 
+       y = "Knowledge level", 
+       title = "Survey participants that got their H1N1 vaccine in 2009 by knowledge level")
+```
+
+```{r}
+joined %>%
+  ggplot(mapping = aes(y = health_worker, fill = h1n1_vaccine)) +
+  geom_bar(position = "fill") +
+  labs(x = "Percentage of survey participants", 
+       y = "Health worker", 
+       title = "Survey participants that got their H1N1 vaccine in 2009 by health worker")
+
+joined %>%
+  ggplot(mapping = aes(y = health_worker, fill = seasonal_vaccine)) +
+  geom_bar(position = "fill") +
+  labs(x = "Percentage of survey participants", 
+       y = "Health worker", 
+       title = "Survey participants that got their seasonal vaccine in 2009 by health worker")
+```
+
+```{r}
+joined %>%
+  ggplot(mapping = aes(y = employment_industry, fill = h1n1_vaccine)) +
+  geom_bar(position = "fill") +
+  labs(x = "Percentage of survey participants", 
+       y = "Employment industry", 
+       title = "Survey participants that got their H1N1 vaccine in 2009 by industry")
+
+joined %>%
+  ggplot(mapping = aes(y = employment_industry, fill = seasonal_vaccine)) +
+  geom_bar(position = "fill") +
+  labs(x = "Percentage of survey participants", 
+       y = "Employment industry", 
+       title = "Survey participants that got their seasonal vaccine in 2009 by industry")
+```
+
+
+```{r}
+joined %>%
+  ggplot(mapping = aes(y = employment_occupation, fill = h1n1_vaccine)) +
+  geom_bar(position = "fill") +
+  labs(x = "Percentage of survey participants", 
+       y = "Occupation", 
+       title = "Survey participants that got their H1N1 vaccine in 2009 by occupation")
+
+joined %>%
+  ggplot(mapping = aes(y = employment_occupation, fill = seasonal_vaccine)) +
+  geom_bar(position = "fill") +
+  labs(x = "Percentage of survey participants", 
+       y = "Occupation", 
+       title = "Survey participants that got their seasonal vaccine in 2009 by occupation")
+```
+
+```{r}
+joined %>%
+  ggplot(mapping = aes(y = seasonal_vaccine, fill = h1n1_vaccine)) +
+  geom_bar(position = "fill") +
+  labs(x = "Percentage of survey participants", 
+       y = "Received seasonal vaccine", 
+       title = "Survey participants that got their H1N1 vaccine in 2009 by seasonal vaccination")
+
+joined %>%
+  ggplot(mapping = aes(y = h1n1_vaccine, fill = seasonal_vaccine)) +
+  geom_bar(position = "fill") +
+  labs(x = "Percentage of survey participants", 
+       y = "Received H1N1 vaccine", 
+       title = "Survey participants that got their seasonal vaccine in 2009 by H1N1 vaccination")
+```
+
+```{r}
+joined %>%
+  ggplot(mapping = aes(y = census_msa, fill = h1n1_vaccine)) +
+  geom_bar(position = "fill") +
+  labs(x = "Percentage of survey participants", 
+       y = "Lives within metropolitan area", 
+       title = "Survey participants that got their H1N1 vaccine in 2009 by area")
+
+joined %>%
+  ggplot(mapping = aes(y = census_msa, fill = seasonal_vaccine)) +
+  geom_bar(position = "fill") +
+  labs(x = "Percentage of survey participants", 
+       y = "Lives within metropolitan area", 
+       title = "Survey participants that got their seasonal vaccine in 2009 by area")
+```
+
+```{r}
+joined %>%
+  ggplot(mapping = aes(y = sex, fill = h1n1_vaccine)) +
+  geom_bar(position = "fill") +
+  labs(x = "Percentage of survey participants", 
+       y = "Sex", 
+       title = "Survey participants that got their H1N1 vaccine in 2009 by sex")
+
+joined %>%
+  ggplot(mapping = aes(y = sex, fill = seasonal_vaccine)) +
+  geom_bar(position = "fill") +
+  labs(x = "Percentage of survey participants", 
+       y = "Sex", 
+       title = "Survey participants that got their seasonal vaccine in 2009 by sex")
+```
+
+```{r}
+joined %>%
+  ggplot(mapping = aes(y = race, fill = h1n1_vaccine)) +
+  geom_bar(position = "fill") +
+  labs(x = "Percentage of survey participants", 
+       y = "Race", 
+       title = "Survey participants that got their H1N1 vaccine in 2009 by race")
+
+joined %>%
+  ggplot(mapping = aes(y = race, fill = seasonal_vaccine)) +
+  geom_bar(position = "fill") +
+  labs(x = "Percentage of survey participants", 
+       y = "Race", 
+       title = "Survey participants that got their seasonal vaccine in 2009 by race")
+```
+
+```{r}
+joined %>%
+  ggplot(mapping = aes(y = income_poverty, fill = h1n1_vaccine)) +
+  geom_bar(position = "fill") +
+  labs(x = "Percentage of survey participants", 
+       y = "Income", 
+       title = "Survey participants that got their H1N1 vaccine in 2009 by income")
+
+joined %>%
+  ggplot(mapping = aes(y = income_poverty, fill = seasonal_vaccine)) +
+  geom_bar(position = "fill") +
+  labs(x = "Percentage of survey participants", 
+       y = "Income", 
+       title = "Survey participants that got their seasonal vaccine in 2009 by income")
+```
+
+
+```{r}
+joined %>%
+  ggplot(mapping = aes(y = income_poverty, fill = seasonal_vaccine)) +
+  geom_bar(position = "fill") +
+  facet_grid(. ~ sex) +
+  labs(x = "Percentage of survey participants", 
+       y = "Income", 
+       title = "Survey participants that got their seasonal vaccine in 2009 by income")
+```
+
+
+```{r}
+# extract all columns names from the featured dataset
+features <- colnames(joined)[4:36]
+
+joined %>%
+  ggplot(mapping = aes(y = features, fill = seasonal_vaccine)) +
+  geom_bar(position = "fill") +
+  labs(x = "% participants")
+
+
+# 
+joined %>%
+  ggplot(mapping = aes_string(y = "features", x = h1n1_vaccine)) +
+  geom_bar(position = "fill") +
+  labs(x = "% of participants")
+
+
+plot_for_loop <- function(joined, x_var, y_var) {
+  ggplot(joined, aes(x = h1n1_vaccine[[x_var]], y = .data[[y_var]])) + 
+    geom_point() + 
+    geom_line() +
+    labs(x = h1n1_vaccine, y = y_var) +
+    theme_classic(base_size = 12)
+}
+
+plot_list <- colnames(train_features)[-1] %>% 
+  map( ~ plot_for_loop(joined, colnames(train_features)[1], .x))
+plot_list
+
+
+
+
+plot_list <- colnames(dt)[-1] %>% 
+  map( ~ plot_for_loop(dt, colnames(dt)[1], .x))
+
+plot_for_loop2 <- function(df, x_var, y_var) {
+  ggplot(df, aes(x = .data[[x_var]], y = .data[[y_var]])) + 
+    geom_point() + 
+    geom_line() +
+    labs(x = x_var, y = y_var) +
+    theme_classic(base_size = 12)
+}
+
+
+```
+
+```{r}
+plots <- list()
+
+for(features in names(train_features)) {
+    plots[[features]] <- ggplot(joined, aes_string(x=h1n1_vaccine, y=features)) + geom_bar()
+}
+
+
+
+
+joined %>%
+  ggplot(mapping = aes(y = income_poverty, fill = h1n1_vaccine)) +
+  geom_bar(position = "fill") +
+  labs(x = "Percentage of survey participants", 
+       y = "Income", 
+       title = "Survey participants that got their H1N1 vaccine in 2009 by income")
+
+
+set.seed(154)
+D <- data.frame(
+    x1 = runif(100),
+    x2 = rnorm(100)
+)
+
+library(ggplot2)
+plots <- list()
+for(nm in names(D)) {
+    plots[[nm]] <- ggplot(data=joined) + geom_density(aes_string(x=nm))
+}
+
+print(plots[["x1"]])
+print(plots[["x2"]])
+
+```
+
