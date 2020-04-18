@@ -1,5 +1,2 @@
 # exclude data provided by DrivenData
 data/
-
-# exclude R Markdown outputs
-notebooks/*.html
