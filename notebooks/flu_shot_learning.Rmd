@@ -18,6 +18,7 @@ library(tidyverse)
 library(magrittr)
 library(cowplot)
 library(janitor)
+library(mlr)
 theme_set(theme_minimal())
 ```
 
@@ -1101,6 +1102,30 @@ plot_grid(prow, rel_widths = c(3, .4))
 #   plot_grid(prow, rel_widths = c(3, .4))
 # }
 # ```
+
+### Missing values
+
+We should acknowledge that the above visualisations we done using the raw data. One could be interested in the number of missing values for each variable in the dataset. First, in the train set:
+
+```{r}
+na_count <- sapply(train_all, function(y) sum(length(which(is.na(y)))))
+na_count <- data.frame(na_count)
+na_count <- na_count %>%
+  add_column(percent_missing = na_count$na_count/26707*100)
+na_count
+```
+
+And then, in the test dataset for which we have to predict the labels:
+
+```{r}
+na_count <- sapply(test_features, function(y) sum(length(which(is.na(y)))))
+na_count <- data.frame(na_count)
+na_count <- na_count %>%
+  add_column(percent_missing = na_count$na_count/26708*100)
+na_count
+```
+
+The respondant_id variable is common to both datasets (training and testing) and has no missing values. The two variables only found in the training dataset, the h1n1_vaccine and the seasonal_vaccine variables, also have no NAs. For the remaining of the variables, we see that trends in missing values seem to be the same in the training and the testing datasets. In both cases, the employment variables (industry and occupation) are missing for approximately 50% of respondants; the health_insurance variable is missing for approximately 46% of respondants; the income variable is missing for almost 17% of respondants; whether the H1N1 or the seasonal vaccines had been recommended by their doctors is missing for 8% of respondants; and whether the respondant owns or rents is missing for almost 8% of respondants. Finally, education, marital status and employment status are also missing for approximately 5% of respondants.
 
 ## NEXT STEPS
 
