@@ -1072,37 +1072,6 @@ prow <- plot_grid(
 plot_grid(prow, rel_widths = c(3, .4))
 ```
 
-## TRYING TO CREATE PLOTS WITH A LOOP
-
-# ```{r}
-# all_variables <- names(train_all)[4:38]
-# 
-# for (variable in all_variables) {
-#   A <- train_all %>%
-#     ggplot(mapping = aes(y = variable, fill = h1n1_vaccine)) +
-#     geom_bar(position = "fill") +
-#     labs(x = "% participants") + 
-#     #       y = "Occupation") +
-#     theme(legend.position = "bottom")
-#   
-#   B <- train_all %>% 
-#     ggplot(mapping = aes(y = variable, fill = seasonal_vaccine)) +
-#     geom_bar(position = "fill") +
-#     labs(x = "% participants") + 
-#     #       y = "Occupation") +
-#     theme(legend.position = "bottom")
-#   
-#   prow <- plot_grid(
-#     A, B,
-#     align = 'vh',
-#     hjust = -1,
-#     nrow = 1
-#   )
-#   
-#   plot_grid(prow, rel_widths = c(3, .4))
-# }
-# ```
-
 ### Missing values
 
 We should acknowledge that the above visualisations we done using the raw data. One could be interested in the number of missing values for each variable in the dataset. First, in the train set:
@@ -1128,6 +1097,8 @@ na_count
 The respondant_id variable is common to both datasets (training and testing) and has no missing values. The two variables only found in the training dataset, the h1n1_vaccine and the seasonal_vaccine variables, also have no NAs. For the remaining of the variables, we see that trends in missing values seem to be the same in the training and the testing datasets. In both cases, the employment variables (industry and occupation) are missing for approximately 50% of respondants; the health_insurance variable is missing for approximately 46% of respondants; the income variable is missing for almost 17% of respondants; whether the H1N1 or the seasonal vaccines had been recommended by their doctors is missing for 8% of respondants; and whether the respondant owns or rents is missing for almost 8% of respondants. Finally, education, marital status and employment status are also missing for approximately 5% of respondants.
 
 ## NEXT STEPS
+
+(Try to create the above plots through a loop.)
 
 The next step is to build a model that, based on survey answers, will predict the float probabilities (ranging between 0.0 and 1.0) of each participant to have taken the H1N1 and/or the seasonal flu shot(s), or in other words the probabilities that a person received each vaccine. As this is a multilabel problem, the submission file should include a probability for each vaccine.
 
