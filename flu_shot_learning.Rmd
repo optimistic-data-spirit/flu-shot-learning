@@ -194,7 +194,35 @@ percent_seasonal%>%
 
 There are no missing values for the variables indicating whether the survey participants received their seasonal and/or H1N1 vaccination. Overall, 46.6% of survey participants got their seasonal vaccination while 21.2% got their H1N1 vaccination in 2009.
 
-### Looking at all variables
+What if we consider both vaccines? How many participants got either no vaccination, H1N1 vaccine only, seasonal flu vaccine only, both vaccines?
+
+```{r}
+none <- sum(train_all$h1n1_vaccine == 0 & train_all$seasonal_vaccine == 0)
+h1n1 <- sum(train_all$h1n1_vaccine == 1 & train_all$seasonal_vaccine == 0)
+seasonal <- sum(train_all$h1n1_vaccine == 0 & train_all$seasonal_vaccine == 1)
+both <- sum(train_all$h1n1_vaccine == 1 & train_all$seasonal_vaccine == 1)
+
+all <- tibble(
+  group = c("none", "H1N1", "seasonal", "both"),
+  n = c(none, h1n1, seasonal, both),
+)
+
+all <- all %>% add_column(percent = all$n/26707*100)
+all
+
+level_order <- c("none", "H1N1", "seasonal", "both")
+
+all %>%
+  ggplot() +
+  geom_col(aes(x = factor(group, level = level_order), y = percent)) +
+  labs(x = "Vaccines received in 2009", 
+       y = "Percent of survey participants", 
+       title = "What percent of participants got which vaccine(s)?")
+```
+
+We can see from the above that almost half (49.8%) of survey participants did not get either of the vaccines, 3.4% only got the H1N1 vaccine, 29% only got the seasonal flu vaccine and 17.6% got both vaccines. 
+
+### Looking at each variable
 
 ```{r}
 train_all %>%
