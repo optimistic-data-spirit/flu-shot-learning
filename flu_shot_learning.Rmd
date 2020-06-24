@@ -212,19 +212,24 @@ plot_grid(prow, rel_widths = c(3, .4))
 ```
 
 ```{r, echo=FALSE}
+make_nice = function(y) {
+  y <- gsub(pattern = "_", replacement = " ", x = y) %>%
+    gsub("(^|[[:digit:]])([[:alpha:]])", "\\1\\U\\2", x = ., perl=TRUE)
+}
+
 bar_plot_function = function(y){
   A <- train_all %>%
     ggplot(mapping = aes(y = .data[[y]], fill = h1n1_vaccine)) +
     geom_bar(position = "fill") +
     labs(x = "% participants", 
-       y = gsub(pattern = "_", replacement = " ", x = y)) +
+       y = make_nice(y)) +
        theme(legend.position = "bottom")
 
   B <- train_all %>%
     ggplot(mapping = aes(y = .data[[y]], fill = seasonal_vaccine)) +
     geom_bar(position = "fill") +
     labs(x = "% participants", 
-        y = gsub(pattern = "_", replacement = " ", x = y)) +
+        y = make_nice(y)) +
         theme(legend.position = "bottom")
 
   prow <- plot_grid(
@@ -245,7 +250,6 @@ parameters <- c("h1n1_concern", "h1n1_knowledge", "behavioral_antiviral_meds", "
 ```{r}
 lapply(parameters, bar_plot_function)
 ```
-
 
 ### Missing values
 
