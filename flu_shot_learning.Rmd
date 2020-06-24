@@ -13,13 +13,10 @@ knitr::opts_chunk$set(echo = TRUE)
 rm(list = ls())
 ```
 
-```{r packages, message=FALSE}
-library(tidyverse)
-library(magrittr)
-library(cowplot)
-library(janitor)
-library(mlr)
-theme_set(theme_minimal())
+```{r}
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(tidyverse, janitor, magrittr, cowplot, tidymodels)
+#theme_set(theme_minimal())
 ```
 
 ## Data
@@ -43,6 +40,7 @@ dim(submission_format)
 ```
 
 From the above we can see that the training datasets have 26707 rows (using the head and tail functions we can see that those rows correspond to respondant_id 0 to 26706) and the test datasets has 26708 rows (respondant_id 26707 to 53414). We can also see that features for both the training and testing datasets include 36 variables and a quick verification with the intersect function confirmed that the variables are the same for the training and testing datasets.
+
 ```{r}
 intersect(names(train_features), names(test_features))
 ```
@@ -122,46 +120,10 @@ There are 36 features in this dataset, hence a dataset with 36 columns. The firs
 * employment_industry - Type of industry respondent is employed in. Values are represented as short random character strings.
 * employment_occupation - Type of occupation of respondent. Values are represented as short random character strings.
 
-```{r cleaning, include=FALSE}
-train_all <- train_all %>% mutate(
-    h1n1_vaccine = as.factor(h1n1_vaccine),
-    seasonal_vaccine = as.factor(seasonal_vaccine),
-    h1n1_concern = as.factor(h1n1_concern),
-    h1n1_knowledge = as.factor(h1n1_knowledge), 
-    behavioral_antiviral_meds = as.factor(behavioral_antiviral_meds),
-    behavioral_avoidance = as.factor(behavioral_avoidance),
-    behavioral_face_mask = as.factor(behavioral_face_mask),
-    behavioral_wash_hands = as.factor(behavioral_wash_hands),
-    behavioral_large_gatherings = as.factor(behavioral_large_gatherings),
-    behavioral_outside_home = as.factor(behavioral_outside_home),
-    behavioral_touch_face = as.factor(behavioral_touch_face),
-    doctor_recc_h1n1 = as.factor(doctor_recc_h1n1),
-    doctor_recc_seasonal = as.factor(doctor_recc_seasonal),
-    chronic_med_condition = as.factor(chronic_med_condition),
-    child_under_6_months = as.factor(child_under_6_months),
-    health_worker = as.factor(health_worker),
-    health_insurance = as.factor(health_insurance),
-    opinion_h1n1_vacc_effective = as.factor(opinion_h1n1_vacc_effective),
-    opinion_h1n1_risk = as.factor(opinion_h1n1_risk),
-    opinion_h1n1_sick_from_vacc = as.factor(opinion_h1n1_sick_from_vacc),
-    opinion_seas_vacc_effective = as.factor(opinion_seas_vacc_effective),
-    opinion_seas_risk = as.factor(opinion_seas_risk),
-    opinion_seas_sick_from_vacc = as.factor(opinion_seas_sick_from_vacc),
-    age_group = as.factor(age_group),
-    education = as.factor(education),
-    race = as.factor(race),
-    sex = as.factor(sex),
-    income_poverty = as.factor(income_poverty),
-    marital_status = as.factor(marital_status),
-    rent_or_own = as.factor(rent_or_own),
-    employment_status = as.factor(employment_status),
-    hhs_geo_region = as.factor(hhs_geo_region),
-    census_msa = as.factor(census_msa),
-    household_adults = as.factor(household_adults),
-    household_children = as.factor(household_children),
-    employment_industry = as.factor(employment_industry),
-    employment_occupation = as.factor(employment_occupation),
-    )
+```{r}
+# magrittr
+train_all %<>% mutate_all(as.factor)
+train_all %<>% mutate(respondent_id = as.integer(respondent_id))
 ```
 
 ```{r}
@@ -250,855 +212,40 @@ plot_grid(prow, rel_widths = c(3, .4))
 ```
 
 ```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = h1n1_knowledge, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "H1N1 knowledge level") +
-       theme(legend.position = "bottom") -> A
+bar_plot_function = function(y){
+  A <- train_all %>%
+    ggplot(mapping = aes(y = .data[[y]], fill = h1n1_vaccine)) +
+    geom_bar(position = "fill") +
+    labs(x = "% participants", 
+       y = gsub(pattern = "_", replacement = " ", x = y)) +
+       theme(legend.position = "bottom")
 
-train_all %>%
-  ggplot(mapping = aes(y = h1n1_knowledge, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Seasonal flu knowledge level") +
-       theme(legend.position = "bottom") -> B
+  B <- train_all %>%
+    ggplot(mapping = aes(y = .data[[y]], fill = seasonal_vaccine)) +
+    geom_bar(position = "fill") +
+    labs(x = "% participants", 
+        y = gsub(pattern = "_", replacement = " ", x = y)) +
+        theme(legend.position = "bottom")
 
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
+  prow <- plot_grid(
+    A, B,
+    align = 'vh',
+    hjust = -1,
+    nrow = 1
+  )
 
-plot_grid(prow, rel_widths = c(3, .4))
+  plot_grid(prow, rel_widths = c(3, .4))
+}
 ```
 
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = behavioral_antiviral_meds, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Took antiviral medications") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = behavioral_antiviral_meds, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Took antiviral medications") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
+```{r}
+parameters <- c("h1n1_concern", "h1n1_knowledge", "behavioral_antiviral_meds", "behavioral_avoidance", "behavioral_face_mask", "behavioral_wash_hands", "behavioral_large_gatherings", "behavioral_outside_home", "behavioral_touch_face", "doctor_recc_h1n1", "doctor_recc_seasonal", "chronic_med_condition", "child_under_6_months", "health_worker", "health_insurance", "opinion_h1n1_vacc_effective", "opinion_h1n1_risk", "opinion_h1n1_sick_from_vacc", "opinion_seas_vacc_effective", "opinion_seas_risk", "opinion_seas_sick_from_vacc", "age_group", "education", "race", "sex", "income_poverty", "marital_status", "rent_or_own", "employment_status", "hhs_geo_region", "census_msa", "household_adults", "household_children", "employment_industry", "employment_occupation")
 ```
 
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = behavioral_avoidance, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Avoided people with flu") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = behavioral_avoidance, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Avoided people with flu") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
+```{r}
+lapply(parameters, bar_plot_function)
 ```
 
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = behavioral_face_mask, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Bought a face mask") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = behavioral_face_mask, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Bought a face mask") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = behavioral_wash_hands, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Frequently washed hands") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = behavioral_wash_hands, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Frequently washed hands") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = behavioral_large_gatherings, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Reduced time at large gatherings") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = behavioral_large_gatherings, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Reduced time at large gatherings") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = behavioral_outside_home, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Reduced time with people outside household") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = behavioral_outside_home, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Reduced time with people outside household") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = behavioral_touch_face, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Avoided touching face") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = behavioral_touch_face, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Avoided touching face") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = doctor_recc_h1n1, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "H1N1 vaccine was recommended by doctor") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = doctor_recc_h1n1, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "H1N1 vaccine was recommended by doctor") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = doctor_recc_seasonal, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Seasonal vaccine was recommended by doctor") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = doctor_recc_seasonal, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Seasonal vaccine was recommended by doctor") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = chronic_med_condition, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Has a chronic medical condition") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = chronic_med_condition, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Has a chronic medical condition") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = child_under_6_months, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Has regular close contact wiht baby") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = child_under_6_months, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Has regular close contact wiht baby") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = health_worker, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Is a health worker") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = health_worker, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Is a health worker") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = health_insurance, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Has health insurance") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = health_insurance, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Has health insurance") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = opinion_h1n1_vacc_effective, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Thinks H1N1 vaccine is effective") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = opinion_h1n1_vacc_effective, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Thinks H1N1 vaccine is effective") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = opinion_h1n1_risk, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Risk of getting sick without H1N1 vaccine") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = opinion_h1n1_risk, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Risk of getting sick without H1N1 vaccine") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = opinion_h1n1_sick_from_vacc, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Worry of getting sick from taking H1N1 vaccine") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = opinion_h1n1_sick_from_vacc, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Worry of getting sick from taking H1N1 vaccine") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = opinion_seas_vacc_effective, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Thinks seasonal vaccine is effective") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = opinion_seas_vacc_effective, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Thinks seasonal vaccine is effective") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = opinion_seas_risk, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Risk of getting sick without seasonal vaccine") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = opinion_seas_risk, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Risk of getting sick without seasonal vaccine") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = opinion_seas_sick_from_vacc, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Worry of getting sick from taking seasonal vaccine") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = opinion_seas_sick_from_vacc, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Worry of getting sick from taking seasonal vaccine") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = age_group, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Age group") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = age_group, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Age group") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = education, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Age group") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = education, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Age group") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = race, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Race") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = race, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Race") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = sex, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Sex") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = sex, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Sex") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = income_poverty, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Income") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = income_poverty, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Income") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = marital_status, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Marital status") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = marital_status, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Marital status") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = rent_or_own, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Rent or own") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = rent_or_own, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Rent or own") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = employment_status, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Employment status") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = employment_status, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Employment status") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = hhs_geo_region, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Geographic classification of residence") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = hhs_geo_region, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Geographic classification of residence") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = census_msa, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Residence in metropolitan area") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = census_msa, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Residence in metropolitan area") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = household_adults, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Number of other adults in household") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = household_adults, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Number of other adults in household") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = household_children, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Number of children in household") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = household_children, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Number of children in household") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = employment_industry, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Industry of employment") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = employment_industry, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Industry of employment") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
-
-```{r, echo=FALSE}
-train_all %>%
-  ggplot(mapping = aes(y = employment_occupation, fill = h1n1_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Occupation") +
-       theme(legend.position = "bottom") -> A
-
-train_all %>%
-  ggplot(mapping = aes(y = employment_occupation, fill = seasonal_vaccine)) +
-  geom_bar(position = "fill") +
-  labs(x = "% participants", 
-       y = "Occupation") +
-       theme(legend.position = "bottom") -> B
-
-prow <- plot_grid(
-  A, B,
-  align = 'vh',
-  hjust = -1,
-  nrow = 1
-)
-
-plot_grid(prow, rel_widths = c(3, .4))
-```
 
 ### Missing values
 
@@ -1124,6 +271,13 @@ na_count
 
 The respondant_id variable is common to both datasets (training and testing) and has no missing values. The two variables only found in the training dataset, the h1n1_vaccine and the seasonal_vaccine variables, also have no NAs. For the remaining of the variables, we see that trends in missing values seem to be the same in the training and the testing datasets. In both cases, the employment variables (industry and occupation) are missing for approximately 50% of respondants; the health_insurance variable is missing for approximately 46% of respondants; the income variable is missing for almost 17% of respondants; whether the H1N1 or the seasonal vaccines had been recommended by their doctors is missing for 8% of respondants; and whether the respondant owns or rents is missing for almost 8% of respondants. Finally, education, marital status and employment status are also missing for approximately 5% of respondants.
 
+We will have to deal with NAs, but given that they are in both datasets... may want to not use the variables with most missing values?
+
+```{r}
+#train_all_no_nas <- 
+```
+
+
 ## NEXT STEPS
 
 (Try to create the above plots through a loop.)
@@ -1136,41 +290,195 @@ Based on the [scikit learn website](https://scikit-learn.org/stable/modules/mult
 
 OK, so we have several binary and categorical variables to model probabilities of vaccination.
 
+Given that we are trying to predict whether the participants took the flu, this can be predict with a logistic regression model. This was also the approach that Jay Qi, Senior Scientist at DrivenData took during his workshop at the [goodtechfest.com](https://www.goodtechfest.com/) but implemented in Python 3. This is the same as the benchmark code example on the DrivenData website for [this competition](https://www.drivendata.co/blog/predict-flu-vaccine-data-benchmark/). His pipeline included two pre-processing steps being (1) scaling all variables on the same scales and (2) NA imputation as logistic regresssion cannot deal with NAs. His first pass model included all numerical variables. 
 
-<!-- All variables -->
+I will take a very similar approach here, but implemented in R, and with a selection of variables based on the plots. 
 
-<!-- h1n1_concern -->
-<!-- h1n1_knowledge -->
-<!-- behavioral_antiviral_meds -->
-<!-- behavioral_avoidance -->
-<!-- behavioral_face_mask -->
-<!-- behavioral_wash_hands -->
-<!-- behavioral_large_gatherings -->
-<!-- behavioral_outside_home -->
-<!-- behavioral_touch_face -->
-<!-- doctor_recc_h1n1 -->
-<!-- doctor_recc_seasonal -->
-<!-- chronic_med_condition -->
-<!-- child_under_6_months -->
-<!-- health_worker -->
-<!-- health_insurance -->
-<!-- opinion_h1n1_vacc_effective -->
-<!-- opinion_h1n1_risk -->
-<!-- opinion_h1n1_sick_from_vacc -->
-<!-- opinion_seas_vacc_effective -->
-<!-- opinion_seas_risk -->
-<!-- opinion_seas_sick_from_vacc -->
-<!-- age_group -->
-<!-- education -->
-<!-- race -->
-<!-- sex -->
-<!-- income_poverty -->
-<!-- marital_status -->
-<!-- rent_or_own -->
-<!-- employment_status -->
-<!-- hhs_geo_region -->
-<!-- census_msa -->
-<!-- household_adults -->
-<!-- household_children -->
-<!-- employment_industry -->
-<!-- employment_occupation -->
+## Build models with recipes from Tidymodels
+
+```{r}
+set.seed(1234)
+data_split <- initial_split(train_all)
+train_data <- training(data_split)
+test_data <- testing(data_split)
+```
+
+
+```{r}
+recipe_simple <- function(dataset) {
+  recipe(Churn ~ ., data = dataset) %>%
+    step_string2factor(all_nominal(), -all_outcomes()) %>%
+    prep(data = dataset)
+}
+```
+
+
+
+Recipe for data preprocessing - do not put variables that are correlated into a logistic regression
+```{r}
+pre_processing <- recipe(h1n1_vaccine ~ ., data = train_data) %>%
+  step_corr(all_numeric()) %>%
+  step_dummy(all_nominal(), -all_outcomes()) %>%
+  step_zv(all_numeric()) %>%
+  step_normalize(all_numeric()) %>% #centering and scaling 
+  prep()
+```
+
+
+```{r}
+glm_spec <- logistic_reg() %>% 
+  set_engine("glm") 
+
+glm_fit <- glm_spec %>%
+  fit(h1n1_vaccine ~ ., data = juice(pre_processing))
+
+glm_fit
+```
+
+```{r}
+knn_spec <- nearest_neighbor() %>%
+  set_engine("kknn") %>%
+  set_mode("classification")
+
+knn_fit <- knn_spec %>%
+  fit(h1n1_vaccine ~ ., data = juice(pre_processing))
+
+knn_fit
+```
+
+```{r}
+tree_spec <- decision_tree() %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+
+tree_fit <- tree_spec %>%
+  fit(h1n1_vaccine ~ ., data = juice(pre_processing))
+
+tree_fit
+```
+
+## EVALUATE MODELS WITH RESAMPLING
+
+```{r}
+set.seed(123)
+folds <- vfold_cv(train_data)
+```
+
+
+```{r}
+set.seed(234)
+glm_rs <- glm_spec %>%
+  fit_resamples(
+    pre_processing,
+    folds,
+    metrics = metric_set(roc_auc, sens, spec),
+    control = control_resamples(save_pred = TRUE)
+  )
+
+set.seed(234)
+knn_rs <- knn_spec %>%
+  fit_resamples(
+    pre_processing,
+    folds,
+    metrics = metric_set(roc_auc, sens, spec),
+    control = control_resamples(save_pred = TRUE)
+  )
+
+set.seed(234)
+tree_rs <- tree_spec %>%
+  fit_resamples(
+    pre_processing,
+    folds,
+    metrics = metric_set(roc_auc, sens, spec),
+    control = control_resamples(save_pred = TRUE)
+  )
+```
+
+
+
+
+
+
+%>%
+  set_mode("classification")
+
+formula <- h1n1_vaccine ~ h1n1_concern + doctor_recc_h1n1 + opinion_h1n1_vacc_effective + opinion_h1n1_risk
+glm_fit <- glm_model %>%
+  fit(
+    formula = formula,
+    data = train_data)
+
+tidy(glm_fit)
+```
+
+
+
+
+
+
+```{r}
+model <- glm(h1n1_vaccine ~ h1n1_knowledge + doctor_recc_h1n1 + health_worker + health_insurance + opinion_h1n1_vacc_effective + opinion_h1n1_risk, data=train_data, family = "binomial")
+summary(model)
+```
+
+```{r}
+predictions <- predict(model, data = train_data, type = "response")
+predictions
+head(train_data)
+```
+
+
+
+
+
+
+seasonal_vaccine + h1n1_concern + h1n1_knowledge + behavioral_antiviral_meds + behavioral_avoidance + behavioral_face_mask + behavioral_wash_hands +  behavioral_large_gatherings + behavioral_outside_home + behavioral_touch_face + doctor_recc_h1n1 + doctor_recc_seasonal + chronic_med_condition + child_under_6_months + health_worker + health_insurance + opinion_h1n1_vacc_effective + opinion_h1n1_risk + opinion_h1n1_sick_from_vacc + opinion_seas_vacc_effective + opinion_seas_risk + opinion_seas_sick_from_vacc + age_group + education + race + sex + income_poverty + marital_status + rent_or_own + employment_status + hhs_geo_region + census_msa + household_adults + household_children + employment_industry + employment_occupation
+
+
+
+```{r}
+pre_processing <- recipe(h1n1_vaccine ~ ., data = train_data) %>%
+  step_corr(all_numeric()) %>%
+  step_dummy(all_nominal(), -all_outcomes()) %>%
+  step_zv(all_numeric()) %>%
+  step_normalize(all_numeric()) %>% #centering and scaling 
+  prep()
+```
+
+
+
+
+## Pre-processing the data
+
+```{r}
+
+```
+
+
+
+```{r}
+formula <- h1n1_vaccine ~ h1n1_concern + doctor_recc_h1n1 + opinion_h1n1_vacc_effective + opinion_h1n1_risk
+
+glm_model <- logistic_reg() %>% 
+  set_engine("glm") %>%
+  set_mode("classification")
+
+glm_fit <- glm_model %>%
+  fit(
+    formula = formula,
+    data = train_data)
+
+tidy(glm_fit)
+```
+
+```{r}
+predictions <- glm_fit %>%
+  predict(
+    new_data = test_data,
+    type = "prob")
+
+predictions
+
+test_data_predictions <- bind_cols(predictions, test_data)
+test_data_predictions
+```
